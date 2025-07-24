@@ -154,29 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            // Register logic
-                          },
-                          child: const Text(
-                            'Register',
-                            style: TextStyle(color: Color(0xFFFF6A3D), fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            // Forgot password logic
-                          },
-                          child: const Text(
-                            'Forgot ?',
-                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Removed Register and Forgot links for a cleaner UI
                   ],
                 ),
               ),

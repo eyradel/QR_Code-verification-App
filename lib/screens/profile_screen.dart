@@ -55,140 +55,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       body: Stack(
         children: [
-          // Top orange curve
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: TopCurveClipper(),
-              child: Container(
-                height: 220,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFFF6A3D), Color(0xFFFFA53D)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+          // Gradient header
+          Container(
+            height: 260,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF7B61FF), Color(0xFF5A4FFF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ),
-          ),
-          // Bottom blue curve
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: BottomCurveClipper(),
-              child: Container(
-                height: 180,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF36D1DC), Color(0xFF5B86E5)],
-                    begin: Alignment.bottomLeft,
-                    end: Alignment.topRight,
-                  ),
-                ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
               ),
             ),
           ),
           // Main content
           SafeArea(
-            child: Center(
-              child: loading
-                  ? const CircularProgressIndicator()
-                  : error != null
-                      ? Text(error!, style: const TextStyle(color: Colors.red))
-                      : SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(height: 60),
-                                const Text(
-                                  'My Profile',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 40),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                                  margin: const EdgeInsets.only(bottom: 24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(40),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 16,
-                                        offset: Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 40,
-                                        backgroundColor: const Color(0xFF36D1DC).withOpacity(0.2),
-                                        child: Text(
-                                          (userInfo?['full_name'] ?? userInfo?['username'] ?? 'U')[0].toUpperCase(),
-                                          style: const TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF36D1DC),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      _profileTile(Icons.person, 'Username', userInfo?['username']),
-                                      _profileTile(Icons.email, 'Email', userInfo?['email']),
-                                      _profileTile(Icons.badge, 'Full Name', userInfo?['full_name']),
-                                      _profileTile(Icons.phone, 'Mobile', userInfo?['mobile_number']),
-                                      _profileTile(Icons.flag, 'Country', userInfo?['country']),
-                                      _profileTile(Icons.business, 'Company', userInfo?['company']),
-                                      _profileTile(Icons.verified_user, 'Role', userInfo?['role']),
-                                    ],
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.qr_code_scanner),
-                                      label: const Text('Scan QR Code'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF36D1DC),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(24),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const HomeScreen()),
-                                        );
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.logout, color: Colors.red),
-                                      tooltip: 'Logout',
-                                      onPressed: () => _logout(context),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Profile header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            (userInfo?['full_name'] ?? userInfo?['username'] ?? 'U')[0].toUpperCase(),
+                            style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
                           ),
                         ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userInfo?['full_name'] ?? userInfo?['username'] ?? 'User',
+                                style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                userInfo?['email'] ?? '',
+                                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          tooltip: 'Logout',
+                          onPressed: () => _logout(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Chips/Stats
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _infoChip(Icons.verified_user, userInfo?['role'] ?? '-', Colors.purple),
+                        _infoChip(Icons.business, userInfo?['company'] ?? '-', Colors.orange),
+                        _infoChip(Icons.flag, userInfo?['country'] ?? '-', Colors.blue),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Main info card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 8, bottom: 16),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _infoRow(Icons.person, 'Username', userInfo?['username']),
+                          _infoRow(Icons.badge, 'Full Name', userInfo?['full_name']),
+                          _infoRow(Icons.phone, 'Mobile', userInfo?['mobile_number']),
+                          _infoRow(Icons.flag, 'Country', userInfo?['country']),
+                          _infoRow(Icons.business, 'Company', userInfo?['company']),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Only the Scan QR Code button below
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.qr_code_scanner, size: 28),
+                        label: const Text('Scan QR Code', style: TextStyle(fontSize: 18)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 18),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ],
@@ -196,41 +194,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _profileTile(IconData icon, String label, String? value) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xFF36D1DC)),
-      title: Text(label),
-      subtitle: Text(value ?? '-', style: const TextStyle(fontWeight: FontWeight.bold)),
+  Widget _infoChip(IconData icon, String label, Color color) {
+    return Chip(
+      avatar: Icon(icon, color: Colors.white, size: 20),
+      label: Text(label, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      backgroundColor: color.withOpacity(0.85),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      labelPadding: const EdgeInsets.only(left: 4, right: 8),
+      elevation: 2,
+      shadowColor: color.withOpacity(0.3),
     );
   }
-}
 
-// Reuse the same clippers as login page
-class TopCurveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 60);
-    path.quadraticBezierTo(size.width / 2, size.height, size.width, size.height - 60);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
+  Widget _infoRow(IconData icon, String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
+          const SizedBox(width: 12),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value ?? '-', style: const TextStyle(fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
   }
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class BottomCurveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 60);
-    path.quadraticBezierTo(size.width / 2, 0, size.width, 60);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 } 

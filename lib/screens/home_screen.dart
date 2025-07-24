@@ -108,7 +108,26 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan QR Code'), backgroundColor: theme.colorScheme.primary, centerTitle: true),
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF7B61FF), Color(0xFF5A4FFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text('Scan QR Code'),
+            centerTitle: true,
+            leading: BackButton(color: Colors.white),
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           ClipRRect(
