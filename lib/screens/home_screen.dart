@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/user_service.dart';
 import 'user_info_screen.dart';
@@ -18,12 +19,11 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _error;
   bool _flashOn = false;
   final MobileScannerController _controller = MobileScannerController();
+  DateTime? _lastScanAt;
 
   int? extractUserId(String url) {
     final uri = Uri.tryParse(url.trim());
     if (uri == null) return null;
-    print('Scanned URI: ' + uri.toString());
-    print('Path segments: ' + uri.pathSegments.toString());
     final segments = uri.pathSegments.map((s) => s.toLowerCase()).toList();
     for (int i = 0; i < segments.length - 2; i++) {
       if (segments[i] == 'auth' && segments[i + 1] == 'users') {
@@ -37,8 +37,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
+  bool _shouldThrottleScan() {
+    final now = DateTime.now();
+    if (_lastScanAt == null) {
+      _lastScanAt = now;
+      return false;
+    }
+    final diff = now.difference(_lastScanAt!).inMilliseconds;
+    if (diff < 1200) {
+      return true;
+    }
+    _lastScanAt = now;
+    return false;
+  }
+
   void _onDetect(BarcodeCapture capture) async {
-    if (_scanned) return;
+    if (_scanned || _shouldThrottleScan()) return;
     final barcode = capture.barcodes.first;
     if (barcode.rawValue == null) return;
     setState(() {
@@ -61,37 +75,51 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final response = await UserService.lookupUserById(userId);
-    setState(() {
-      _loading = false;
-    });
+    try {
+      final response = await UserService.lookupUserById(userId);
+      setState(() { _loading = false; });
 
-    if (response.statusCode == 200) {
-      final user = jsonDecode(response.body);
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const VerifiedDialog(),
-      );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => UserInfoScreen(
-            userInfo: jsonEncode(user),
-            error: null,
+      if (response.statusCode == 200) {
+        final user = jsonDecode(response.body);
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const VerifiedDialog(),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserInfoScreen(
+              userInfo: jsonEncode(user),
+              error: null,
+            ),
           ),
-        ),
-      ).then((_) {
-        setState(() {
-          _scanned = false;
-          _qrText = null;
+        ).then((_) {
+          setState(() {
+            _scanned = false;
+            _qrText = null;
+          });
         });
-      });
-    } else {
+      } else {
+        final bodySnippet = response.body.toString();
+        final preview = bodySnippet.length > 140 ? bodySnippet.substring(0, 140) + '…' : bodySnippet;
+        setState(() {
+          _error = 'Status ${response.statusCode}: $preview';
+          _scanned = false;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_error!), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
       setState(() {
-        _error = 'User not found or not accessible (${response.statusCode})';
+        _error = 'Network error: $e';
+        _loading = false;
         _scanned = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_error!), backgroundColor: Colors.red),
       );
@@ -130,14 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Stack(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(0),
-            child: MobileScanner(
-              controller: _controller,
-              onDetect: _onDetect,
-            ),
+          MobileScanner(
+            controller: _controller,
+            onDetect: _onDetect,
           ),
-          // Glassmorphic overlay for frame
+          // Scan frame overlay
           Center(
             child: Container(
               width: 260,
@@ -154,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              child: const SizedBox(),
             ),
           ),
           Positioned(
@@ -168,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  shadows: [Shadow(blurRadius: 4, color: Colors.black, offset: Offset(1, 1))],
+                  shadows: const [Shadow(blurRadius: 4, color: Colors.black, offset: Offset(1, 1))],
                 ),
               ),
             ),
@@ -176,20 +200,38 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_qrText != null)
             Positioned(
               bottom: 80,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(12),
+              left: 16,
+              right: 16,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _qrText!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    'Extracted: $_qrText',
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _qrText == null ? null : () async {
+                      await Clipboard.setData(ClipboardData(text: _qrText!));
+                      if (!mounted) return; 
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Copied')), 
+                      );
+                    },
+                    icon: const Icon(Icons.copy, color: Colors.white),
                   ),
-                ),
+                ],
               ),
             ),
           if (_loading)
@@ -211,6 +253,17 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white),
             ),
           ),
+          // Camera flip button
+          Positioned(
+            top: 32,
+            left: 32,
+            child: FloatingActionButton(
+              heroTag: 'flip',
+              backgroundColor: theme.colorScheme.primary,
+              onPressed: () async { await _controller.switchCamera(); },
+              child: const Icon(Icons.cameraswitch, color: Colors.white),
+            ),
+          ),
         ],
       ),
     );
@@ -222,9 +275,7 @@ class VerifiedDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-    });
+    Future.delayed(const Duration(seconds: 2), () { Navigator.of(context).pop(); });
     return Scaffold(
       backgroundColor: Colors.green.withOpacity(0.95),
       body: Center(
@@ -241,10 +292,7 @@ class VerifiedDialog extends StatelessWidget {
               child: const Icon(Icons.check_circle, color: Colors.white, size: 120),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Verified!',
-              style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
-            ),
+            const Text('Verified!', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

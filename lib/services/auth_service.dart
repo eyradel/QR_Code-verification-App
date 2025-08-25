@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../utils/secure_storage.dart';
 
 class AuthService {
-  static const _baseUrl = 'https://services-7tfs.onrender.com';
+  static const _baseUrl = 'https://services-backend-635062712814.europe-west1.run.app';
 
   static Future<Map<String, dynamic>> login(String username, String password) async {
     final response = await http.post(
@@ -26,11 +26,16 @@ class AuthService {
     return {'success': false, 'error': 'Unknown error'};
   }
 
-  static Future<bool> verify(String username, String code) async {
+  static Future<bool> verify(String username, String code, {String? verificationLink}) async {
+    final payload = {
+      'username': username,
+      'code': code,
+      if (verificationLink != null) 'verification_link': verificationLink,
+    };
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/verify'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'code': code}),
+      body: jsonEncode(payload),
     );
     return response.statusCode == 200;
   }
@@ -40,6 +45,16 @@ class AuthService {
       Uri.parse('$_baseUrl/auth/resend-verification'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'username': username}),
+    );
+    return response.statusCode == 200;
+  }
+
+  static Future<bool> verifyToken() async {
+    final token = await SecureStorage.read('access_token');
+    if (token == null) return false;
+    final response = await http.get(
+      Uri.parse('$_baseUrl/auth/verify-token'),
+      headers: {'Authorization': 'Bearer $token'},
     );
     return response.statusCode == 200;
   }
